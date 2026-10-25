@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseMesh } from '../src/ogre/mesh.js';
 import { parseSkeleton } from '../src/ogre/skeleton.js';
@@ -17,6 +17,18 @@ test('srt and description', () => {
   assert.equal(d.category, 'Tachi Waza');
   assert.equal(d.technique, 'Ikkyo');
   assert.equal(d.body, '<br/>Body');
+});
+
+test('pt-BR translations keep cue timing of the English source', () => {
+  const dir = new URL('../translations/', import.meta.url);
+  const files = readdirSync(dir).filter((f) => f.endsWith('.srt'));
+  assert.ok(files.length > 0);
+  for (const f of files) {
+    const pt = parseSrt(readFileSync(new URL(f, dir), 'utf8'));
+    const en = parseSrt(readFileSync(new URL(`en/${f}`, dir), 'utf8'));
+    assert.deepEqual(pt.map(({ start, end }) => [start, end]), en.map(({ start, end }) => [start, end]), f);
+    assert.ok(pt.every((c) => c.text.trim()), `${f}: empty cue`);
+  }
 });
 
 test('material and vis', () => {

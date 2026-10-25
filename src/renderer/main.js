@@ -153,6 +153,8 @@ async function loadClipIndex(list) {
       if (desc) meta = parseDescription(dec.decode(zip[desc]));
       if (srt) subtitles = parseSrt(dec.decode(zip[srt]));
     }
+    const pt = await bytes(`translations/${id}.srt`).catch(() => null);
+    if (pt) subtitles = parseSrt(new TextDecoder().decode(pt));
     const skeletons = {};
     for (const f of files) {
       const m = f.match(/_([A-Z0-9]+)\.skeleton$/i);

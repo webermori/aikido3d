@@ -26,6 +26,7 @@ assets are missing).
 | Clip skeleton animation (delta keyframes)   | `createClip` in `src/renderer/three-ogre.js`  |
 | `.material`, `.vis`, `.cfg`, `Lights.ini`   | `src/ogre/text-formats.js`                    |
 | Clip `NNN.zip` (description + `.srt`)       | `fflate` + `parseDescription` / `parseSrt`    |
+| (added) pt-BR subtitles                     | `translations/NNN.srt`, preferred over the zip's `.srt`; English sources in `translations/en/` |
 | `Media/Camera/fps_view.cfg`                 | "Nage POV" camera                             |
 | libRocket UI                                | HTML/CSS in `src/renderer`                    |
 

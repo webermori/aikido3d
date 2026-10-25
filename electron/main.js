@@ -58,9 +58,12 @@ function createWindow() {
 app.whenReady().then(async () => {
   protocol.handle('aikido', async (req) => {
     if (!assetRoot) return new Response('No asset folder selected', { status: 404 });
-    const rel = decodeURIComponent(new URL(req.url).pathname);
-    const file = path.resolve(assetRoot, '.' + rel);
-    const inside = path.relative(assetRoot, file);
+    let rel = decodeURIComponent(new URL(req.url).pathname);
+    let root = assetRoot;
+    // pt-BR subtitles live in the repo, not in the extracted assets.
+    if (rel.startsWith('/translations/')) { root = path.join(app.getAppPath(), 'translations'); rel = rel.slice('/translations'.length); }
+    const file = path.resolve(root, '.' + rel);
+    const inside = path.relative(root, file);
     if (inside.startsWith('..') || path.isAbsolute(inside)) return new Response('Forbidden', { status: 403 });
     const res = await net.fetch(pathToFileURL(file).toString());
     // The renderer runs from file://, so asset responses must be readable cross-origin.
