@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' aikido: blob: data:; media-src 'self' aikido: blob:; connect-src 'self' aikido: ws:" />
+  <title>Aikido 3D — Volume One</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <aside id="sidebar">
+    <header><h1>Aikido 3D <small>Volume One</small></h1>
+      <input id="search" type="search" placeholder="Search techniques…" aria-label="Search techniques" />
+    </header>
+    <nav id="clips" aria-label="Techniques"></nav>
+  </aside>
+
+  <main id="stage">
+    <canvas id="view"></canvas>
+    <div id="subtitle" aria-live="polite"></div>
+    <div id="overlay" hidden>
+      <p id="overlay-msg"></p>
+      <button id="choose">Choose assets folder…</button>
+    </div>
+
+    <section id="toolbar" aria-label="Playback">
+      <button id="play" title="Play/Pause (Space)" aria-label="Play">▶</button>
+      <button id="restart" title="Restart (Home)" aria-label="Restart">⏮</button>
+      <input id="timeline" type="range" min="0" max="1000" value="0" aria-label="Timeline" />
+      <span id="time">0.00 / 0.00</span>
+      <label>Speed <select id="speed">
+        <option>0.25</option><option>0.5</option><option selected>1</option><option>1.5</option><option>2</option>
+      </select></label>
+      <label><input id="loop" type="checkbox" checked /> Loop</label>
+      <label>Camera <select id="camera">
+        <option value="follow" selected>Follow</option><option value="front">Front</option><option value="side">Side</option><option value="top">Top</option>
+        <option value="pov">Nage POV</option>
+      </select></label>
+    </section>
+  </main>
+
+  <aside id="details">
+    <div id="info"><p class="muted">Select a technique.</p></div>
+    <fieldset>
+      <legend>Display</legend>
+      <label><input id="opt-dojo" type="checkbox" checked /> Dojo</label>
+      <label><input id="opt-steps" type="checkbox" checked /> Footsteps</label>
+      <label><input id="opt-hakama" type="checkbox" /> Hakama</label>
+      <label><input id="opt-subs" type="checkbox" checked /> Subtitles</label>
+      <label><input id="opt-voice" type="checkbox" checked /> Voice-over</label>
+      <label><input id="opt-name" type="checkbox" checked /> Announce name</label>
+    </fieldset>
+  </aside>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
