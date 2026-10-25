@@ -124,6 +124,8 @@ async function loadCharacter(role) {
 async function loadDojo() {
   const mesh = parseMesh(await bytes('Media/VisualFullRoom/env.mesh'));
   env.dojo = createCharacter(mesh, null, { material }).group;
+  // Back-face cull the room so ceiling/underside don't hide the characters from straight above/below.
+  env.dojo.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) m.side = THREE.FrontSide; });
   scene.add(env.dojo);
 }
 
