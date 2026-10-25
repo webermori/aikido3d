@@ -7,6 +7,7 @@ import { parseMesh } from '../ogre/mesh.js';
 import { parseSkeleton } from '../ogre/skeleton.js';
 import { parseDescription, parseIni, parseMaterials, parseSrt, parseVis } from '../ogre/text-formats.js';
 import { createCharacter, createClip, findBone } from './three-ogre.js';
+import { attackKey, byLearningOrder, matchesChips, matchesQuery, normalize } from './filter.js';
 
 const $ = (id) => document.getElementById(id);
 const asset = (p) => `aikido://assets/${p.split('/').map(encodeURIComponent).join('/')}`;
@@ -151,6 +152,9 @@ const player = { time: 0, duration: 0, playing: false, speed: 1 };
 const voice = new Audio(), announce = new Audio();
 
 async function loadClipIndex(list) {
+  // pt-BR descriptions: info labels by lower-cased English text, bodies by clip id.
+  const ptDesc = await bytes('translations/descriptions.pt.json').then((b) => JSON.parse(new TextDecoder().decode(b))).catch(() => ({}));
+  const tr = (table, s) => table?.[s?.trim().toLowerCase()] ?? s;
   clips = await Promise.all(list.map(async ({ id, files }) => {
     const zipName = files.find((f) => f.toLowerCase() === `${id}.zip`);
     let meta = { title: id, category: 'Other' }, subtitles = [];
@@ -170,16 +174,63 @@ async function loadClipIndex(list) {
       if (m) skeletons[m[1].toUpperCase()] = f;
     }
     const pick = (re) => files.find((f) => re.test(f));
-    return { id, files, ...meta, subtitles, skeletons, nameAudio: pick(/_Name\.ogg$/i), voiceAudio: pick(/_Voiceover_EN\.ogg$/i) };
+    const position = /\bomote\b/i.test(meta.title) ? 'Omote' : /\bura\b/i.test(meta.title) ? 'Ura' : 'Other';
+    const attackLabel = attackKey(meta.attack) === 'tantotori' ? 'Tantotori' : meta.attack;
+    return { id, files, ...meta, attackInfo: tr(ptDesc.attackInfo, meta.attackInfo), techniqueInfo: tr(ptDesc.techniqueInfo, meta.techniqueInfo), body: ptDesc.body?.[id] ?? meta.body, subtitles, skeletons, position, attackLabel, categoryKey: normalize(meta.category), attackKey: attackKey(meta.attack), techniqueKey: normalize(meta.technique).replace('shihinage', 'shihonage') /* typo in 2 source clips */, nameAudio: pick(/_Name\.ogg$/i), voiceAudio: pick(/_Voiceover_EN\.ogg$/i) };
   }));
+  for (const [id, keyField, labelField] of FILTERS) fillChips(id, keyField, labelField);
+  renderClipList();
+}
+
+// [container id, clip key field, clip label field]
+const FILTERS = [['f-category', 'categoryKey', 'category'], ['f-attack', 'attackKey', 'attackLabel'], ['f-technique', 'techniqueKey', 'technique'], ['f-position', 'position', 'position']];
+const selected = new Map(FILTERS.map(([, field]) => [field, new Set()]));
+
+// Builds toggle chips for the distinct values of a clip field; labels come from the most common spelling.
+function fillChips(id, keyField, labelField) {
+  const counts = new Map();
+  for (const c of clips) {
+    if (!c[keyField]) continue;
+    const spellings = counts.get(c[keyField]) ?? new Map();
+    spellings.set(c[labelField], (spellings.get(c[labelField]) ?? 0) + 1);
+    counts.set(c[keyField], spellings);
+  }
+  const options = [...counts].map(([k, sp]) => [k, [...sp].sort((a, b) => b[1] - a[1] || b[0].includes('-') - a[0].includes('-'))[0][0]])
+    .sort(byLearningOrder(keyField));
+  const set = selected.get(keyField);
+  const container = $(id);
+  container.replaceChildren(...options.map(([k, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.textContent = label;
+    b.setAttribute('aria-pressed', String(set.has(k)));
+    b.onclick = () => {
+      // Single choice per group: picking a chip replaces the previous one; picking it again clears the group.
+      const wasOn = set.has(k);
+      set.clear();
+      if (!wasOn) set.add(k);
+      for (const chip of container.children) chip.setAttribute('aria-pressed', String(chip === b && !wasOn));
+      renderClipList();
+    };
+    return b;
+  }));
+}
+
+function clearFilters() {
+  for (const set of selected.values()) set.clear();
+  for (const b of document.querySelectorAll('#filters .chip')) b.setAttribute('aria-pressed', 'false');
+  $('search').value = '';
   renderClipList();
 }
 
 function renderClipList() {
-  const q = $('search').value.trim().toLowerCase();
+  const q = $('search').value;
   const nav = $('clips');
   nav.replaceChildren();
-  const groups = Map.groupBy(clips.filter((c) => !q || `${c.id} ${c.title} ${c.category} ${c.attack} ${c.technique}`.toLowerCase().includes(q)), (c) => c.category);
+  const filtered = clips.filter((c) => matchesChips(c, selected) && matchesQuery(c, q));
+  $('filter-count').textContent = `${filtered.length} de ${clips.length}`;
+  const groups = Map.groupBy(filtered, (c) => c.category);
   for (const [cat, list] of groups) {
     const h = document.createElement('h2');
     h.textContent = cat;
@@ -206,7 +257,7 @@ function renderBody(body) {
 
 function renderInfo(c) {
   const info = $('info');
-  info.innerHTML = `<div class="cat"></div><h2></h2><dl><dt>Attack</dt><dd class="a"></dd><dt>Technique</dt><dd class="t"></dd></dl><div class="body"></div>`;
+  info.innerHTML = `<div class="cat"></div><h2></h2><dl><dt>Ataque</dt><dd class="a"></dd><dt>Técnica</dt><dd class="t"></dd></dl><div class="body"></div>`;
   info.querySelector('.cat').textContent = c.category;
   info.querySelector('h2').textContent = c.title;
   info.querySelector('.a').textContent = [c.attack, c.attackInfo].filter(Boolean).join(' — ');
@@ -342,6 +393,7 @@ $('timeline').oninput = (e) => { seek((e.target.value / 1000) * player.duration)
 $('speed').onchange = (e) => { player.speed = +e.target.value; voice.playbackRate = player.speed; };
 $('camera').onchange = (e) => applyCameraPreset(e.target.value);
 $('search').oninput = renderClipList;
+$('clear-filters').onclick = clearFilters;
 $('opt-voice').onchange = (e) => { voice.muted = !e.target.checked; };
 $('opt-dojo').onchange = (e) => { if (env.dojo) env.dojo.visible = e.target.checked; floor.visible = !e.target.checked || !env.dojo; };
 $('opt-steps').onchange = (e) => { if (chars.STP) chars.STP.group.visible = e.target.checked && chars.STP.active; };

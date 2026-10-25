@@ -11,6 +11,13 @@
   <aside id="sidebar">
     <header><h1>Aikido 3D <small>Volume One</small></h1>
       <input id="search" type="search" placeholder="Search techniques…" aria-label="Search techniques" />
+      <div id="filters">
+        <div id="filter-bar"><span id="filter-count" aria-live="polite"></span><button id="clear-filters" type="button">Limpar filtros</button></div>
+        <div class="chip-group" role="group" aria-labelledby="l-category"><span id="l-category">Categoria</span><div id="f-category"></div></div>
+        <div class="chip-group" role="group" aria-labelledby="l-attack"><span id="l-attack">Ataque</span><div id="f-attack"></div></div>
+        <div class="chip-group" role="group" aria-labelledby="l-technique"><span id="l-technique">Técnica</span><div id="f-technique"></div></div>
+        <div class="chip-group" role="group" aria-labelledby="l-position"><span id="l-position">Posição</span><div id="f-position"></div></div>
+      </div>
     </header>
     <nav id="clips" aria-label="Techniques"></nav>
   </aside>
