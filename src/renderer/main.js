@@ -34,11 +34,18 @@ const floor = new THREE.Mesh(new THREE.CircleGeometry(600, 64).rotateX(-Math.PI 
 floor.receiveShadow = true;
 scene.add(floor);
 
+let baseFov = 45;
+// Vertical FOV widens in portrait so the horizontal field of view stays constant.
+function updateFov() {
+  camera.fov = camera.aspect < 1 ? Math.min(120, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(baseFov) / 2) / camera.aspect))) : baseFov;
+  camera.updateProjectionMatrix();
+}
+
 function resize() {
   const { clientWidth: w, clientHeight: h } = canvas.parentElement;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  updateFov();
 }
 new ResizeObserver(resize).observe(canvas.parentElement);
 
@@ -289,8 +296,8 @@ function applyCameraPreset(mode) {
   const c = centre(new THREE.Vector3()).setY(90);
   const presets = { front: [0, 70, 430], side: [430, 70, 0], top: [0, 560, 1], follow: [0, 70, 430] };
   if (presets[mode]) { camera.position.copy(c).add(tmp.set(...presets[mode])); controls.target.copy(c); }
-  camera.fov = mode === 'pov' ? 85 : 45;
-  camera.updateProjectionMatrix();
+  baseFov = mode === 'pov' ? 85 : 45;
+  updateFov();
 }
 
 function updateCamera() {
